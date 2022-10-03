@@ -1,10 +1,12 @@
 import { Play, HandPalm } from 'phosphor-react';
-import { CountdownContainer, FormContainer, HomeContainer, MinutesAmountInput, Separator, StartCountdownButton, StopCountdownButton, TaskInput } from "./styles";
+import { HomeContainer, StartCountdownButton, StopCountdownButton } from "./styles";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { useState, useEffect } from 'react';
 import { differenceInSeconds } from 'date-fns';
+import { NewCycleForm } from './Components/NewCycleForm';
+import { Countdown } from './Components/Countdown';
 
 const newCycleFormValidationSchema = zod.object({
     task: zod.string().min(1, 'Inform the task'),
@@ -130,47 +132,8 @@ export function Home() {
     return (
         <HomeContainer>
             <form onSubmit={handleSubmit(handleCreateNewCycle)}>
-                <FormContainer>
-                    <label htmlFor="task">Work in</label>
-                    <TaskInput
-                        id='task'
-                        list='task-suggestions'
-                        placeholder='Name your project'
-                        disabled={!!activeCycle}
-                        {...register('task')}
-
-                    />
-
-                    <datalist id='task-suggestions'>
-                        <option value="Project 1"></option>
-                        <option value="Project 2"></option>
-                        <option value="Project 3"></option>
-                        <option value="Project 4"></option>
-
-                    </datalist>
-
-                    <label htmlFor="minutesAmount">for</label>
-                    <MinutesAmountInput
-                        type="number"
-                        id="minutesAmout"
-                        placeholder='00'
-                        step={5}
-                        min={5}
-                        max={60}
-                        disabled={!!activeCycle}
-                        {...register('minutesAmount', { valueAsNumber: true })}
-                    />
-
-                    <span>minutes</span>
-                </FormContainer>
-
-                <CountdownContainer>
-                    <span>{minutes[0]}</span>
-                    <span>{minutes[1]}</span>
-                    <Separator>:</Separator>
-                    <span>{seconds[0]}</span>
-                    <span>{seconds[1]}</span>
-                </CountdownContainer>
+                <NewCycleForm/>
+                <Countdown/>
 
                 {activeCycle ? (
                     <StopCountdownButton onClick={handleInterruptCycle} type='button'>
