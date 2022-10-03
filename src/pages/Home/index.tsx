@@ -15,49 +15,68 @@ const newCycleFormValidationSchema = zod.object({
 });
 
 type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>;
- 
+
 interface Cycle {
     id: string;
     task: string;
     minutesAmount: number;
     startDate: Date;
     interruptedDate?: Date;
+    finishedDate?: Date;
 }
 
-export function Home(){
+export function Home() {
     const [cycles, setCycles] = useState<Cycle[]>([]);
     const [activeCycleId, setActiveCycleId] = useState<string | null>(null);
     const [amountSecondsPassed, setAmountSecondsPassed] = useState(0);
 
 
-    const { register, handleSubmit, watch, reset} = useForm<NewCycleFormData>({
+    const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
         resolver: zodResolver(newCycleFormValidationSchema),
         defaultValues: {
             task: '',
             minutesAmount: 0,
         }
     });
-    
+
     // Zod validation
     // formState from useForm
     // console.log(formState.errors)
     const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
+    const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0;
 
     useEffect(() => {
         let interval: number;
 
-        if(activeCycle) {
+        if (activeCycle) {
             interval = setInterval(() => {
-                setAmountSecondsPassed(
-                    differenceInSeconds(new Date(), activeCycle.startDate),
+
+                const secondsDifference = differenceInSeconds(
+                    new Date(),
+                    activeCycle.startDate,
                 )
+                if (secondsDifference >= totalSeconds) {
+                    setCycles((state) =>
+                        state.map((cycle) => {
+                            if (cycle.id === activeCycleId) {
+                                return { ...cycle, finishedDate: new Date() }
+                            } else {
+                                return cycle
+                            }
+                        }),
+                    )
+                    setAmountSecondsPassed(totalSeconds)
+                    clearInterval(interval)
+                } else {
+                    setAmountSecondsPassed(secondsDifference)
+                }
             }, 1000);
         }
 
-        return () => { 
+        return () => {
             clearInterval(interval);
         }
-    }, [activeCycle]);
+    }, [activeCycle, totalSeconds, activeCycleId]);
 
     function handleCreateNewCycle(data: NewCycleFormData) {
         const id = String(new Date().getTime());
@@ -77,21 +96,18 @@ export function Home(){
     };
 
     function handleInterruptCycle() {
-        setCycles(
-            cycles.map((cycle) => {
+        setCycles((state) => 
+            state.map((cycle) => {
                 if (cycle.id === activeCycleId) {
-                    return { ...cycle, interruptedDate: new Date()}
+                    return { ...cycle, interruptedDate: new Date() }
                 } else {
                     return cycle
                 }
-            }),
-        )  
-        setActiveCycleId(null);  
+            })
+        )
+        setActiveCycleId(null);
     }
 
-    
-    
-    const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0;
     const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0;
 
     const minutesAmount = Math.floor(currentSeconds / 60);
@@ -112,64 +128,63 @@ export function Home(){
 
 
     return (
-            <HomeContainer>
-                <form onSubmit={handleSubmit(handleCreateNewCycle)}>
-                    <FormContainer>
-                        <label htmlFor="task">Work in</label>
-                        <TaskInput 
-                            id='task' 
-                            list='task-suggestions'
-                            placeholder='Name your project'
-                            disabled={!!activeCycle}
-                            {...register('task')}
+        <HomeContainer>
+            <form onSubmit={handleSubmit(handleCreateNewCycle)}>
+                <FormContainer>
+                    <label htmlFor="task">Work in</label>
+                    <TaskInput
+                        id='task'
+                        list='task-suggestions'
+                        placeholder='Name your project'
+                        disabled={!!activeCycle}
+                        {...register('task')}
 
-                        />
+                    />
 
-                        <datalist id='task-suggestions'>
-                            <option value="Project 1"></option>
-                            <option value="Project 2"></option>
-                            <option value="Project 3"></option>
-                            <option value="Project 4"></option>
+                    <datalist id='task-suggestions'>
+                        <option value="Project 1"></option>
+                        <option value="Project 2"></option>
+                        <option value="Project 3"></option>
+                        <option value="Project 4"></option>
 
-                        </datalist>
+                    </datalist>
 
-                        <label htmlFor="minutesAmount">for</label>
-                        <MinutesAmountInput 
-                            type="number" 
-                            id="minutesAmout" 
-                            placeholder='00'
-                            step={5}
-                            min={5}
-                            max={60}
-                            disabled = {!!activeCycle}
-                            {...register('minutesAmount', { valueAsNumber: true})}
-                        />
+                    <label htmlFor="minutesAmount">for</label>
+                    <MinutesAmountInput
+                        type="number"
+                        id="minutesAmout"
+                        placeholder='00'
+                        step={5}
+                        min={5}
+                        max={60}
+                        disabled={!!activeCycle}
+                        {...register('minutesAmount', { valueAsNumber: true })}
+                    />
 
-                        <span>minutes</span>    
-                    </FormContainer>
+                    <span>minutes</span>
+                </FormContainer>
 
-                    <CountdownContainer>
-                        <span>{minutes[0]}</span>
-                        <span>{minutes[1]}</span>
-                        <Separator>:</Separator>
-                        <span>{seconds[0]}</span>
-                        <span>{seconds[1]}</span>
-                    </CountdownContainer>
+                <CountdownContainer>
+                    <span>{minutes[0]}</span>
+                    <span>{minutes[1]}</span>
+                    <Separator>:</Separator>
+                    <span>{seconds[0]}</span>
+                    <span>{seconds[1]}</span>
+                </CountdownContainer>
 
-                    {activeCycle ? (
-                        <StopCountdownButton onClick={handleInterruptCycle} type='button'>
-                            <HandPalm size={24} />
-                            Interrupt
-                        </StopCountdownButton>
-                        
-                    ) : (
-                        <StartCountdownButton type="submit" disabled={isSubmitDisable}>
-                           <Play size={24}/>
-                           Start
-                        </StartCountdownButton>
-                    )}
-                </form>
-            </HomeContainer>
+                {activeCycle ? (
+                    <StopCountdownButton onClick={handleInterruptCycle} type='button'>
+                        <HandPalm size={24} />
+                        Interrupt
+                    </StopCountdownButton>
+
+                ) : (
+                    <StartCountdownButton type="submit" disabled={isSubmitDisable}>
+                        <Play size={24} />
+                        Start
+                    </StartCountdownButton>
+                )}
+            </form>
+        </HomeContainer>
     )
 }
-        
